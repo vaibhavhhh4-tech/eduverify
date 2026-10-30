@@ -1,6 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
+import { getPasswordOverride } from '@/lib/storage'
 import type { Role, Session } from '@/types'
 
 /**
@@ -38,7 +39,8 @@ export async function mockLogin(identifier: string, password: string, role: Role
   const id = identifier.trim().toLowerCase()
   const account = DEMO_ACCOUNTS.find((a) => a.email === id || a.altId?.toLowerCase() === id)
   if (!account) return { ok: false, field: 'identifier', message: 'No demo account found with this email or institutional ID.' }
-  if (account.password !== password) return { ok: false, field: 'password', message: 'Incorrect password. Please check the Demo Access section.' }
+  const expected = getPasswordOverride(account.email) ?? account.password
+  if (expected !== password) return { ok: false, field: 'password', message: 'Incorrect password. Please check the Demo Access section.' }
   if (account.role !== role)
     return { ok: false, field: 'role', message: `This account is registered as "${ROLE_LABEL[account.role]}". Please select the correct role.` }
   const session: Session = { role, email: account.email, name: account.name, designation: account.designation, loggedInAt: new Date().toISOString() }

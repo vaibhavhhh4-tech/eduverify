@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Loader2, LogOut, Menu } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Loader2, LogOut, Menu } from 'lucide-react'
 import { toast } from 'sonner'
 import { BrandMark, DemoBadge, TricolorRule } from '@/components/brand/logo'
 import { Button } from '@/components/ui/button'
@@ -12,10 +12,11 @@ import { ROLE_HOME, ROLE_LABEL, logout, useSession } from '@/lib/auth'
 import { useAppState } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 import type { Role } from '@/types'
+import { Breadcrumbs } from './breadcrumbs'
 import { NAV, isActive, titleFor } from './nav-config'
 import { Topbar } from './topbar'
 
-function SidebarNav({ role, onNavigate }: { role: Role; onNavigate?: () => void }) {
+function SidebarNav({ role, onNavigate, collapsed, onToggle }: { role: Role; onNavigate?: () => void; collapsed?: boolean; onToggle?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const { alerts } = useAppState()
@@ -23,12 +24,14 @@ function SidebarNav({ role, onNavigate }: { role: Role; onNavigate?: () => void 
 
   return (
     <div className="flex h-full flex-col">
-      <Link href={ROLE_HOME[role]} onClick={onNavigate} className="flex items-center gap-3 px-5 py-5">
+      <Link href={ROLE_HOME[role]} onClick={onNavigate} className={cn('flex items-center gap-3 px-5 py-5', collapsed && 'justify-center px-2')}>
         <BrandMark className="bg-white text-primary" />
-        <span className="flex flex-col leading-tight">
-          <span className="text-base font-bold text-white">EduVerify</span>
-          <span className="text-[11px] text-white/60">{ROLE_LABEL[role]}</span>
-        </span>
+        {!collapsed && (
+          <span className="flex flex-col leading-tight">
+            <span className="text-base font-bold text-white">EduVerify</span>
+            <span className="text-[11px] text-white/60">{ROLE_LABEL[role]}</span>
+          </span>
+        )}
       </Link>
       <TricolorRule className="h-0.5 opacity-80" />
       <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-4">
@@ -40,15 +43,17 @@ function SidebarNav({ role, onNavigate }: { role: Role; onNavigate?: () => void 
                 <Link
                   href={item.href}
                   onClick={onNavigate}
+                  title={collapsed ? item.label : undefined}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
                     'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white',
+                    collapsed && 'justify-center px-2',
                     active && 'bg-white text-primary hover:bg-white hover:text-primary',
                   )}
                 >
                   <item.icon className="size-4 shrink-0" aria-hidden="true" />
-                  <span className="flex-1">{item.label}</span>
-                  {item.badge === 'alerts' && openAlerts > 0 && (
+                  {!collapsed && <span className="flex-1">{item.label}</span>}
+                  {!collapsed && item.badge === 'alerts' && openAlerts > 0 && (
                     <span className={cn('rounded-full px-1.5 text-[11px] font-semibold', active ? 'bg-destructive text-white' : 'bg-saffron text-primary')}>
                       {openAlerts}
                     </span>
@@ -60,7 +65,13 @@ function SidebarNav({ role, onNavigate }: { role: Role; onNavigate?: () => void 
         </ul>
       </nav>
       <div className="flex flex-col gap-3 border-t border-white/10 p-4">
-        <DemoBadge label="PROTOTYPE · MOCK DATA" className="w-fit border-saffron/50 bg-saffron/15 text-saffron" />
+        {!collapsed && <DemoBadge label="PROTOTYPE · MOCK DATA" className="w-fit border-saffron/50 bg-saffron/15 text-saffron" />}
+        {onToggle && (
+          <button type="button" onClick={onToggle} className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white">
+            {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
+            {!collapsed && 'Collapse menu'}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -68,10 +79,10 @@ function SidebarNav({ role, onNavigate }: { role: Role; onNavigate?: () => void 
             toast.success('You have been logged out.')
             router.push('/login')
           }}
-          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white"
+          className={cn('flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white', collapsed && 'justify-center px-2')}
         >
           <LogOut className="size-4" aria-hidden="true" />
-          Logout
+          {!collapsed && 'Logout'}
         </button>
       </div>
     </div>
@@ -83,6 +94,7 @@ export function AppShell({ role, children }: { role: Role; children: React.React
   const router = useRouter()
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
     if (session === null) router.replace('/login')
@@ -103,8 +115,8 @@ export function AppShell({ role, children }: { role: Role; children: React.React
       <a href="#content" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-card focus:px-3 focus:py-2">
         Skip to content
       </a>
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 bg-sidebar lg:block">
-        <SidebarNav role={role} />
+      <aside className={cn('sticky top-0 hidden h-dvh shrink-0 bg-sidebar transition-[width] lg:block', collapsed ? 'w-[72px]' : 'w-64')}>
+        <SidebarNav role={role} collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
       </aside>
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 border-0 bg-sidebar p-0" showCloseButton={false}>
@@ -124,7 +136,10 @@ export function AppShell({ role, children }: { role: Role; children: React.React
           }
         />
         <main id="content" className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto flex max-w-7xl flex-col gap-6">{children}</div>
+          <div className="mx-auto flex max-w-7xl flex-col gap-6">
+            <Breadcrumbs role={role} />
+            {children}
+          </div>
         </main>
         <footer className="border-t bg-card px-4 py-3 text-center text-[11px] text-muted-foreground sm:px-6">
           EduVerify prototype · Illustrative mock data · Not affiliated with or endorsed by AICTE, APAAR or DigiLocker

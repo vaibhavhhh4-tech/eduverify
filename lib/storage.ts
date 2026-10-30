@@ -5,6 +5,7 @@ import type {
   Activity,
   Alert,
   AppNotification,
+  Category,
   ConsentEntry,
   DigiLockerState,
   Profile,
@@ -40,6 +41,8 @@ interface PersistedState {
   academicYear: string
   profiles: Partial<Record<Role, Profile>>
   reminders: string[]
+  passwordOverrides: Record<string, string>
+  seatPolicy: Record<Category, number>
 }
 
 export interface AppState extends PersistedState {
@@ -61,6 +64,8 @@ function defaults(): PersistedState {
     academicYear: CURRENT_YEAR,
     profiles: {},
     reminders: [],
+    passwordOverrides: {},
+    seatPolicy: { General: 40.5, 'OBC-NCL': 27, SC: 15, ST: 7.5, EWS: 10 },
   }
 }
 
@@ -200,9 +205,26 @@ export const store = {
   addReminder(code: string) {
     update((s) => ({ ...s, reminders: Array.from(new Set([...s.reminders, code])) }))
   },
+  clearNotifications() {
+    update((s) => ({ ...s, notifications: [] }))
+  },
+  setPasswordOverride(email: string, password: string) {
+    update((s) => ({ ...s, passwordOverrides: { ...s.passwordOverrides, [email]: password } }))
+  },
+  setSeatPolicy(seatPolicy: Record<Category, number>) {
+    update((s) => ({ ...s, seatPolicy }))
+  },
   reset() {
     update(() => defaults())
   },
+}
+
+export function getPasswordOverride(email: string) {
+  try {
+    return load().passwordOverrides[email] ?? null
+  } catch {
+    return null
+  }
 }
 
 export function getStudentsSnapshot() {

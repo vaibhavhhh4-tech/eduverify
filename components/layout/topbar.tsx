@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Bell, CheckCheck, ChevronDown, LogOut, Settings, UserRound } from 'lucide-react'
+import { Bell, CheckCheck, ChevronDown, LogOut, Settings, Trash2, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   DropdownMenu,
@@ -107,17 +107,28 @@ export function Topbar({ role, session, title, menuButton }: { role: Role; sessi
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
-            {unread > 0 && (
+            {notificationsForRole.length > 0 && (
               <>
                 <DropdownMenuSeparator />
+                {unread > 0 && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      store.markAllNotificationsRead()
+                      toast.success('All notifications marked as read')
+                    }}
+                  >
+                    <CheckCheck />
+                    Mark all as read
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onClick={() => {
-                    store.markAllNotificationsRead()
-                    toast.success('All notifications marked as read')
+                    store.clearNotifications()
+                    toast.success('Notifications cleared')
                   }}
                 >
-                  <CheckCheck />
-                  Mark all as read
+                  <Trash2 />
+                  Clear notifications
                 </DropdownMenuItem>
               </>
             )}
