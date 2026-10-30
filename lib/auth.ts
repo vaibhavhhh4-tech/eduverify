@@ -19,10 +19,10 @@ export const ROLE_LABEL: Record<Role, string> = {
 }
 
 export const ROLE_HOME: Record<Role, string> = {
-  institution: '/institution',
-  aicte: '/aicte',
-  officer: '/verification',
-  student: '/student',
+  institution: '/institution/dashboard',
+  aicte: '/admin/dashboard',
+  officer: '/officer/dashboard',
+  student: '/student/dashboard',
 }
 
 export const DEMO_ACCOUNTS: { role: Role; email: string; altId?: string; password: string; name: string; designation: string }[] = [
@@ -35,7 +35,7 @@ export const DEMO_ACCOUNTS: { role: Role; email: string; altId?: string; passwor
 export type LoginResult = { ok: true; session: Session } | { ok: false; field: 'identifier' | 'password' | 'role'; message: string }
 
 export async function mockLogin(identifier: string, password: string, role: Role): Promise<LoginResult> {
-  await new Promise((r) => setTimeout(r, 900))
+  await new Promise((r) => setTimeout(r, 600))
   const id = identifier.trim().toLowerCase()
   const account = DEMO_ACCOUNTS.find((a) => a.email === id || a.altId?.toLowerCase() === id)
   if (!account) return { ok: false, field: 'identifier', message: 'No demo account found with this email or institutional ID.' }
@@ -44,14 +44,22 @@ export async function mockLogin(identifier: string, password: string, role: Role
   if (account.role !== role)
     return { ok: false, field: 'role', message: `This account is registered as "${ROLE_LABEL[account.role]}". Please select the correct role.` }
   const session: Session = { role, email: account.email, name: account.name, designation: account.designation, loggedInAt: new Date().toISOString() }
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  try {
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  } catch (e) {
+    console.error('Failed to save session to localStorage', e)
+  }
   cached = session
   emit()
   return { ok: true, session }
 }
 
 export function logout() {
-  window.localStorage.removeItem(SESSION_KEY)
+  try {
+    window.localStorage.removeItem(SESSION_KEY)
+  } catch (e) {
+    console.error('Failed to clear session from localStorage', e)
+  }
   cached = null
   emit()
 }
@@ -62,6 +70,7 @@ const emit = () => listeners.forEach((l) => l())
 
 function read(): Session | null {
   if (cached !== undefined) return cached
+  if (typeof window === 'undefined') return null
   try {
     const raw = window.localStorage.getItem(SESSION_KEY)
     cached = raw ? (JSON.parse(raw) as Session) : null
@@ -73,7 +82,21 @@ function read(): Session | null {
 
 function subscribe(cb: () => void) {
   listeners.add(cb)
-  return () => listeners.delete(cb)
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === SESSION_KEY) {
+      cached = undefined
+      cb()
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', onStorage)
+  }
+  return () => {
+    listeners.delete(cb)
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('storage', onStorage)
+    }
+  }
 }
 
 /** Returns undefined until the client has read storage, then the session or null. */

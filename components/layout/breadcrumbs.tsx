@@ -8,16 +8,21 @@ import type { Role } from '@/types'
 
 const LABELS: Record<string, string> = {
   institution: 'Institution',
-  aicte: 'National Admin',
-  verification: 'Verification Portal',
+  admin: 'AICTE Admin',
+  aicte: 'AICTE Admin',
+  officer: 'Verification Officer',
+  verification: 'Verification Officer',
   student: 'Student Portal',
+  dashboard: 'Dashboard',
   students: 'Student Records',
   new: 'Add Student',
   edit: 'Edit',
   upload: 'Bulk Upload',
   apaar: 'APAAR Verification',
-  digilocker: 'DigiLocker',
+  'apaar-verification': 'APAAR Verification',
+  digilocker: 'DigiLocker Integration',
   admissions: 'Admission Monitoring',
+  duplicates: 'Duplicate Detection',
   alerts: 'Duplicate Alerts',
   reports: 'Reports',
   settings: 'Settings',
@@ -33,7 +38,7 @@ export function Breadcrumbs({ role }: { role: Role }) {
   const parts = pathname.split('/').filter(Boolean)
   const crumbs = parts.map((part, i) => {
     const href = '/' + parts.slice(0, i + 1).join('/')
-    const label = LABELS[part] ?? part
+    const label = LABELS[part] ?? part.charAt(0).toUpperCase() + part.slice(1)
     return { href, label }
   })
   return (
